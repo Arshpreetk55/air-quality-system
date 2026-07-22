@@ -42,6 +42,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
   const ctx = document.getElementById('historyChart').getContext('2d');
   let chart;

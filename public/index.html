@@ -55,7 +55,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
+const db = getFirestore(app);
 
   const maxPoints = 20;
   const ctx = document.getElementById('sensorChart').getContext('2d');

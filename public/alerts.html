@@ -38,6 +38,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);  
   const list = document.getElementById('alertList');
 
   function renderAlerts(alerts) {
