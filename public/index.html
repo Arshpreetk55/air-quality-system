@@ -2,93 +2,368 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Air Quality Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aerin — Live Air Quality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;min-height:100vh;padding:30px; }
-  h1{text-align:center;margin-bottom:20px;}
-  .navbar{display:flex;justify-content:center;gap:15px;margin-bottom:25px;flex-wrap:wrap;}
-  .navbar a{color:#f1f5f9;text-decoration:none;background:#334155;padding:8px 16px;border-radius:8px;}
-  .status-banner{text-align:center;padding:12px;border-radius:10px;font-weight:bold;font-size:1.2rem;margin-bottom:25px;}
-  .good{background:#16a34a;} .high{background:#dc2626;}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;max-width:900px;margin:0 auto 40px;}
-  .card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;text-align:center;}
-  .card .label{font-size:0.9rem;color:#94a3b8;text-transform:uppercase;margin-bottom:8px;}
-  .card .value{font-size:2.2rem;font-weight:700;}
-  .chart-container{max-width:900px;margin:0 auto;background:#1e293b;border-radius:14px;padding:20px;border:1px solid #334155;}
+  :root{
+    --bg-0:#080b14;
+    --bg-1:#0d1220;
+    --panel:rgba(255,255,255,0.04);
+    --panel-border:rgba(255,255,255,0.08);
+    --ink:#e9edf5;
+    --ink-dim:#8891a5;
+    --ink-faint:#5a6376;
+
+    --aqi-good:#33d17a;
+    --aqi-moderate:#e6d84f;
+    --aqi-sensitive:#f4a942;
+    --aqi-unhealthy:#f4573f;
+    --aqi-very-unhealthy:#b355e0;
+    --aqi-hazardous:#8a3550;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    padding:28px 20px 60px;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(51,209,122,0.10), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(179,85,224,0.10), transparent 40%),
+      linear-gradient(180deg,var(--bg-0),var(--bg-1) 60%,var(--bg-0));
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  .particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .particles span{
+    position:absolute;bottom:-10px;
+    width:var(--s,3px);height:var(--s,3px);
+    background:var(--c,rgba(233,237,245,0.35));
+    border-radius:50%;
+    animation:rise var(--d,18s) linear infinite;
+    animation-delay:var(--delay,0s);
+    left:var(--l,50%);
+  }
+  @keyframes rise{
+    0%{transform:translateY(0) translateX(0);opacity:0;}
+    10%{opacity:1;}
+    90%{opacity:1;}
+    100%{transform:translateY(-110vh) translateX(20px);opacity:0;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .particles{display:none;}
+  }
+
+  header{
+    max-width:1080px;margin:0 auto 30px;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;position:relative;z-index:1;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand .mark{
+    width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(135deg,var(--aqi-good),var(--aqi-sensitive));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;color:#0a0d14;font-size:1.05rem;
+    box-shadow:0 6px 24px -8px rgba(51,209,122,0.5);
+  }
+  .brand h1{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:600;letter-spacing:-0.01em;}
+  .brand .sub{font-size:0.72rem;color:var(--ink-faint);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;}
+
+  nav.navbar{display:flex;gap:6px;flex-wrap:wrap;}
+  .navbar a{
+    color:var(--ink-dim);text-decoration:none;font-size:0.86rem;font-weight:500;
+    padding:8px 14px;border-radius:9px;transition:all .18s ease;
+    border:1px solid transparent;
+  }
+  .navbar a:hover{color:var(--ink);background:var(--panel);border-color:var(--panel-border);}
+  .navbar a.active{color:var(--ink);background:var(--panel);border-color:var(--panel-border);}
+
+  main{max-width:1080px;margin:0 auto;position:relative;z-index:1;}
+
+  .hero{
+    display:grid;grid-template-columns:340px 1fr;gap:28px;
+    background:var(--panel);border:1px solid var(--panel-border);
+    border-radius:24px;padding:34px;margin-bottom:22px;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:'';position:absolute;top:-40%;right:-10%;width:60%;height:180%;
+    background:radial-gradient(circle, var(--gauge-glow,rgba(51,209,122,0.14)), transparent 65%);
+    transition:background 1s ease;pointer-events:none;
+  }
+
+  .gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;}
+  .gauge-wrap svg{width:100%;max-width:300px;}
+  .gauge-needle{transition:transform 1.1s cubic-bezier(.4,1.4,.4,1);transform-origin:150px 150px;}
+  .gauge-readout{position:absolute;top:58%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+  .gauge-readout .num{
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:3rem;line-height:1;
+    color:var(--ink);letter-spacing:-0.02em;
+  }
+  .gauge-readout .unit{font-size:0.78rem;color:var(--ink-faint);letter-spacing:0.05em;margin-top:4px;text-transform:uppercase;}
+
+  .status-pill{
+    margin-top:14px;display:inline-flex;align-items:center;gap:8px;
+    padding:8px 18px;border-radius:100px;font-family:'Space Grotesk',sans-serif;
+    font-weight:600;font-size:0.92rem;
+    background:var(--pill-bg,rgba(51,209,122,0.14));
+    color:var(--pill-fg,var(--aqi-good));
+    border:1px solid var(--pill-fg,var(--aqi-good));
+    transition:all .5s ease;
+  }
+  .status-pill .dot{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(1.4);}}
+
+  .hero-side{display:flex;flex-direction:column;justify-content:center;gap:18px;}
+  .hero-side .eyebrow{font-size:0.72rem;color:var(--ink-faint);letter-spacing:0.12em;text-transform:uppercase;font-weight:600;}
+  .hero-side .headline{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:600;letter-spacing:-0.01em;line-height:1.3;}
+  .hero-side .headline strong{color:var(--pill-fg,var(--aqi-good));transition:color .5s ease;}
+
+  .metric-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;}
+  .metric{
+    background:rgba(255,255,255,0.03);border:1px solid var(--panel-border);
+    border-radius:14px;padding:16px 18px;
+  }
+  .metric .label{font-size:0.72rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
+  .metric .value{font-family:'JetBrains Mono',monospace;font-size:1.6rem;font-weight:600;color:var(--ink);}
+  .metric .value span.suffix{font-size:0.95rem;color:var(--ink-dim);font-weight:400;margin-left:2px;}
+
+  .updated-line{font-size:0.76rem;color:var(--ink-faint);display:flex;align-items:center;gap:6px;}
+
+  .legend{
+    display:flex;border-radius:14px;overflow:hidden;margin-bottom:22px;
+    border:1px solid var(--panel-border);
+  }
+  .legend .seg{flex:1;padding:11px 6px;text-align:center;font-size:0.7rem;font-weight:600;
+    color:rgba(8,11,20,0.75);letter-spacing:0.02em;}
+  .legend .seg small{display:block;font-weight:500;opacity:.75;font-size:0.62rem;margin-top:2px;}
+
+  .chart-panel{
+    background:var(--panel);border:1px solid var(--panel-border);border-radius:22px;
+    padding:26px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  }
+  .chart-panel .panel-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .chart-panel h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:600;}
+  .chart-panel .panel-head span{font-size:0.78rem;color:var(--ink-faint);}
+  .chart-container{position:relative;height:320px;}
+
+  footer{max-width:1080px;margin:26px auto 0;text-align:center;color:var(--ink-faint);font-size:0.76rem;position:relative;z-index:1;}
+
+  @media (max-width:760px){
+    .hero{grid-template-columns:1fr;padding:24px 20px;}
+    .legend{flex-wrap:wrap;}
+    .legend .seg{flex:1 1 33%;}
+  }
+
+  a:focus-visible, button:focus-visible{outline:2px solid var(--aqi-good);outline-offset:3px;}
 </style>
 </head>
 <body>
-  <h1>🌫️ Live Air Quality Dashboard</h1>
+
+<div class="particles" id="particles"></div>
+
+<header>
+  <div class="brand">
+    <div class="mark">A</div>
+    <div>
+      <h1>Aerin</h1>
+      <div class="sub">Ambient air monitor</div>
+    </div>
+  </div>
   <nav class="navbar">
-    <a href="/">🏠 Live</a>
-    <a href="/history.html">📈 History</a>
-    <a href="/settings.html">⚙️ Settings</a>
-    <a href="/alerts.html">🚨 Alerts</a>
+    <a href="/" class="active">Live</a>
+    <a href="/history.html">History</a>
+    <a href="/settings.html">Settings</a>
+    <a href="/alerts.html">Alerts</a>
   </nav>
+</header>
 
-  <div id="statusBanner" class="status-banner good">Waiting for data...</div>
+<main>
 
-  <div class="cards">
-    <div class="card"><div class="label">Air Quality</div><div class="value"><span id="ppm">--</span></div></div>
-    <div class="card"><div class="label">Temperature</div><div class="value"><span id="temp">--</span> °C</div></div>
-    <div class="card"><div class="label">Humidity</div><div class="value"><span id="hum">--</span> %</div></div>
+  <section class="hero">
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 300 170" id="gaugeSvg">
+        <path d="M 20 150 A 130 130 0 0 1 47 63"  stroke="var(--aqi-good)" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <path d="M 52 58 A 130 130 0 0 1 100 26"  stroke="var(--aqi-moderate)" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <path d="M 106 22 A 130 130 0 0 1 160 15"  stroke="var(--aqi-sensitive)" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <path d="M 166 16 A 130 130 0 0 1 218 34"  stroke="var(--aqi-unhealthy)" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <path d="M 222 38 A 130 130 0 0 1 258 78"  stroke="var(--aqi-very-unhealthy)" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <path d="M 261 83 A 130 130 0 0 1 280 150" stroke="var(--aqi-hazardous)" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <g class="gauge-needle" id="needle">
+          <line x1="150" y1="150" x2="150" y2="35" stroke="#e9edf5" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="150" cy="150" r="8" fill="#e9edf5"/>
+        </g>
+      </svg>
+      <div class="gauge-readout">
+        <div class="num" id="ppm">—</div>
+        <div class="unit">ppm equivalent</div>
+      </div>
+      <div class="status-pill" id="statusPill"><span class="dot"></span><span id="statusText">Connecting…</span></div>
+    </div>
+
+    <div class="hero-side">
+      <div class="eyebrow">Right now</div>
+      <div class="headline">Conditions are reading <strong id="headlineWord">—</strong> based on the latest sensor pass.</div>
+
+      <div class="metric-row">
+        <div class="metric">
+          <div class="label">Temperature</div>
+          <div class="value"><span id="temp">—</span><span class="suffix">°C</span></div>
+        </div>
+        <div class="metric">
+          <div class="label">Humidity</div>
+          <div class="value"><span id="hum">—</span><span class="suffix">%</span></div>
+        </div>
+      </div>
+
+      <div class="updated-line">
+        <span>●</span>
+        <span id="lastUpdated">Waiting for first reading…</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="legend">
+    <div class="seg" style="background:var(--aqi-good)">Good<small>0–50</small></div>
+    <div class="seg" style="background:var(--aqi-moderate)">Moderate<small>51–100</small></div>
+    <div class="seg" style="background:var(--aqi-sensitive)">Sensitive<small>101–150</small></div>
+    <div class="seg" style="background:var(--aqi-unhealthy)">Unhealthy<small>151–200</small></div>
+    <div class="seg" style="background:var(--aqi-very-unhealthy)">Very unhealthy<small>201–300</small></div>
+    <div class="seg" style="background:var(--aqi-hazardous)">Hazardous<small>301+</small></div>
   </div>
 
-  <div class="chart-container"><canvas id="sensorChart" height="90"></canvas></div>
+  <section class="chart-panel">
+    <div class="panel-head">
+      <h2>Live trend</h2>
+      <span>Last 20 readings · PPM / Temp / Humidity</span>
+    </div>
+    <div class="chart-container"><canvas id="sensorChart"></canvas></div>
+  </section>
+
+</main>
+
+<footer>Aerin — built on Firebase &amp; Chart.js</footer>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
-  authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
-  databaseURL: "https://air-quality-monitoring-s-1551f-default-rtdb.firebaseio.com",
-  projectId: "air-quality-monitoring-s-1551f",
-  storageBucket: "air-quality-monitoring-s-1551f.firebasestorage.app",
-  messagingSenderId: "630203906956",
-  appId: "1:630203906956:web:65e968db4045a477b4b4a9",
-  measurementId: "G-4ZWFMH9YW1"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
+    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+    databaseURL: "https://air-quality-monitoring-s-1551f-default-rtdb.firebaseio.com",
+    projectId: "air-quality-monitoring-s-1551f",
+    storageBucket: "air-quality-monitoring-s-1551f.firebasestorage.app",
+    messagingSenderId: "630203906956",
+    appId: "1:630203906956:web:65e968db4045a477b4b4a9",
+    measurementId: "G-4ZWFMH9YW1"
+  };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const pWrap = document.getElementById('particles');
+  const colors = ['rgba(233,237,245,0.3)','rgba(51,209,122,0.35)','rgba(179,85,224,0.3)'];
+  for (let i = 0; i < 26; i++) {
+    const s = document.createElement('span');
+    s.style.setProperty('--l', Math.random()*100 + '%');
+    s.style.setProperty('--d', (14 + Math.random()*14) + 's');
+    s.style.setProperty('--delay', (Math.random()*18) + 's');
+    s.style.setProperty('--s', (2 + Math.random()*3) + 'px');
+    s.style.setProperty('--c', colors[i % colors.length]);
+    pWrap.appendChild(s);
+  }
+
+  const bands = [
+    { max:50,  color:'--aqi-good',           label:'Good',            word:'clean' },
+    { max:100, color:'--aqi-moderate',       label:'Moderate',        word:'moderate' },
+    { max:150, color:'--aqi-sensitive',      label:'Sensitive groups',word:'a little elevated' },
+    { max:200, color:'--aqi-unhealthy',      label:'Unhealthy',       word:'unhealthy' },
+    { max:300, color:'--aqi-very-unhealthy', label:'Very unhealthy',  word:'very unhealthy' },
+    { max:Infinity, color:'--aqi-hazardous', label:'Hazardous',       word:'hazardous' },
+  ];
+  function bandFor(ppm){ return bands.find(b => ppm <= b.max) || bands[bands.length-1]; }
+
+  function animateNumber(el, to, decimals){
+    decimals = decimals || 0;
+    const from = parseFloat(el.dataset.raw || '0');
+    const start = performance.now();
+    const dur = 700;
+    function step(now){
+      const t = Math.min(1, (now-start)/dur);
+      const eased = 1 - Math.pow(1-t, 3);
+      const val = from + (to-from)*eased;
+      el.textContent = val.toFixed(decimals);
+      if (t < 1) requestAnimationFrame(step);
+      else el.dataset.raw = to;
+    }
+    requestAnimationFrame(step);
+  }
+
+  const root = document.documentElement;
+  const needle = document.getElementById('needle');
+  const maxGaugePPM = 350;
 
   const maxPoints = 20;
   const ctx = document.getElementById('sensorChart').getContext('2d');
   const chart = new Chart(ctx, {
     type: 'line',
     data: { labels: [], datasets: [
-      { label: 'PPM', data: [], borderColor: '#38bdf8', tension: 0.3 },
-      { label: 'Temp (°C)', data: [], borderColor: '#f97316', tension: 0.3 },
-      { label: 'Humidity (%)', data: [], borderColor: '#22c55e', tension: 0.3 }
+      { label: 'PPM', data: [], borderColor: '#33d17a', backgroundColor:'rgba(51,209,122,0.08)', fill:true, tension: 0.35, pointRadius:0, borderWidth:2 },
+      { label: 'Temp (°C)', data: [], borderColor: '#f4a942', tension: 0.35, pointRadius:0, borderWidth:2 },
+      { label: 'Humidity (%)', data: [], borderColor: '#7aa2f7', tension: 0.35, pointRadius:0, borderWidth:2 }
     ]},
-    options: { responsive:true, animation:false,
-      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}} },
-      plugins:{ legend:{ labels:{ color:'#f1f5f9' } } } }
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{ mode:'index', intersect:false },
+      scales:{
+        x:{ ticks:{ color:'#5a6376', maxRotation:0, autoSkip:true }, grid:{ color:'rgba(255,255,255,0.05)' } },
+        y:{ ticks:{ color:'#5a6376' }, grid:{ color:'rgba(255,255,255,0.05)' } }
+      },
+      plugins:{ legend:{ labels:{ color:'#8891a5', usePointStyle:true, boxWidth:8 } } }
+    }
   });
 
   const q = query(collection(db, 'readings'), orderBy('timestamp', 'desc'), limit(1));
   onSnapshot(q, (snapshot) => {
     snapshot.forEach((doc) => {
       const data = doc.data();
-      document.getElementById('ppm').textContent = data.ppm;
-      document.getElementById('temp').textContent = data.temp.toFixed(1);
-      document.getElementById('hum').textContent = data.hum.toFixed(1);
+      const ppm = Number(data.ppm), temp = Number(data.temp), hum = Number(data.hum);
+      const band = bandFor(ppm);
 
-      const banner = document.getElementById('statusBanner');
-      const isHigh = data.ppm > 250; // or fetch threshold from settings doc
-      banner.textContent = isHigh ? '⚠️ Air Quality HIGH' : '✅ Air Quality Good';
-      banner.className = isHigh ? 'status-banner high' : 'status-banner good';
+      animateNumber(document.getElementById('ppm'), ppm, 0);
+      animateNumber(document.getElementById('temp'), temp, 1);
+      animateNumber(document.getElementById('hum'), hum, 1);
 
-      const now = new Date().toLocaleTimeString();
-      chart.data.labels.push(now);
-      chart.data.datasets[0].data.push(data.ppm);
-      chart.data.datasets[1].data.push(data.temp);
-      chart.data.datasets[2].data.push(data.hum);
+      const clamped = Math.min(ppm, maxGaugePPM);
+      const angle = -90 + (clamped / maxGaugePPM) * 180;
+      needle.style.transform = 'rotate(' + angle + 'deg)';
+
+      const color = getComputedStyle(root).getPropertyValue(band.color).trim();
+      root.style.setProperty('--gauge-glow', color + '28');
+      document.getElementById('statusPill').style.setProperty('--pill-fg', color);
+      document.getElementById('statusPill').style.setProperty('--pill-bg', color + '22');
+      document.getElementById('statusText').textContent = band.label;
+      document.getElementById('headlineWord').style.color = color;
+      document.getElementById('headlineWord').textContent = band.word;
+
+      document.getElementById('lastUpdated').textContent =
+        'Updated ' + new Date().toLocaleTimeString();
+
+      chart.data.labels.push(new Date().toLocaleTimeString());
+      chart.data.datasets[0].data.push(ppm);
+      chart.data.datasets[1].data.push(temp);
+      chart.data.datasets[2].data.push(hum);
       if (chart.data.labels.length > maxPoints) {
         chart.data.labels.shift();
         chart.data.datasets.forEach(ds => ds.data.shift());

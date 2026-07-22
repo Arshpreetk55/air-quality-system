@@ -61,6 +61,3 @@ async function getAlerts(limit) {
 }
 
 module.exports = { getThreshold, setThreshold, addReading, getReadings, addAlert, getAlerts };
-
-
-
