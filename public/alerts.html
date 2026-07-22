@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><title>Alerts - Air Quality</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;padding:30px;}
+  h1{text-align:center;margin-bottom:20px;}
+  .navbar{display:flex;justify-content:center;gap:15px;margin-bottom:25px;flex-wrap:wrap;}
+  .navbar a{color:#f1f5f9;text-decoration:none;background:#334155;padding:8px 16px;border-radius:8px;}
+  .list{max-width:700px;margin:0 auto;}
+  .alert-item{background:#1e293b;border-left:4px solid #dc2626;border-radius:8px;padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;}
+  .time{color:#94a3b8;font-size:0.9rem;}
+  .empty{text-align:center;color:#94a3b8;margin-top:40px;}
+</style>
+</head>
+<body>
+  <h1>🚨 Alert History</h1>
+  <nav class="navbar">
+    <a href="/">🏠 Live</a><a href="/history.html">📈 History</a>
+    <a href="/settings.html">⚙️ Settings</a><a href="/alerts.html">🚨 Alerts</a>
+  </nav>
+  <div class="list" id="alertList"></div>
+<script>
+  const socket = io();
+  const list = document.getElementById('alertList');
+  function renderAlerts(alerts) {
+    list.innerHTML = '';
+    if (alerts.length === 0) { list.innerHTML = '<p class="empty">No alerts recorded yet 🎉</p>'; return; }
+    alerts.forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'alert-item';
+      div.innerHTML = `<span>⚠️ PPM: ${a.ppm}</span><span class="time">${a.timestamp}</span>`;
+      list.appendChild(div);
+    });
+  }
+  fetch('/api/alerts').then(r=>r.json()).then(renderAlerts);
+  socket.on('newAlert', () => fetch('/api/alerts').then(r=>r.json()).then(renderAlerts));
+</script>
+</body>
+</html>

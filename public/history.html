@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><title>History - Air Quality</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;padding:30px;}
+  h1{text-align:center;margin-bottom:20px;}
+  .navbar{display:flex;justify-content:center;gap:15px;margin-bottom:25px;flex-wrap:wrap;}
+  .navbar a{color:#f1f5f9;text-decoration:none;background:#334155;padding:8px 16px;border-radius:8px;}
+  .chart-container{max-width:900px;margin:0 auto;background:#1e293b;border-radius:14px;padding:20px;border:1px solid #334155;}
+  select{background:#334155;color:#f1f5f9;border:none;padding:8px 14px;border-radius:8px;margin:0 auto 20px;display:block;}
+</style>
+</head>
+<body>
+  <h1>📈 Historical Trends</h1>
+  <nav class="navbar">
+    <a href="/">🏠 Live</a><a href="/history.html">📈 History</a>
+    <a href="/settings.html">⚙️ Settings</a><a href="/alerts.html">🚨 Alerts</a>
+  </nav>
+  <select id="rangeSelect">
+    <option value="50">Last 50 readings</option>
+    <option value="200" selected>Last 200 readings</option>
+    <option value="1000">Last 1000 readings</option>
+  </select>
+  <div class="chart-container"><canvas id="historyChart" height="100"></canvas></div>
+<script>
+  const ctx = document.getElementById('historyChart').getContext('2d');
+  let chart;
+  function loadHistory(limit) {
+    fetch(`/api/history?limit=${limit}`).then(r=>r.json()).then(rows=>{
+      const labels = rows.map(r => r.timestamp.split(' ')[1] || r.timestamp);
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type:'line',
+        data:{ labels, datasets:[
+          {label:'PPM',data:rows.map(r=>r.ppm),borderColor:'#38bdf8',tension:0.3},
+          {label:'Temp (°C)',data:rows.map(r=>r.temp),borderColor:'#f97316',tension:0.3},
+          {label:'Humidity (%)',data:rows.map(r=>r.hum),borderColor:'#22c55e',tension:0.3}
+        ]},
+        options:{ responsive:true,
+          scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}}},
+          plugins:{legend:{labels:{color:'#f1f5f9'}}} }
+      });
+    });
+  }
+  document.getElementById('rangeSelect').addEventListener('change', e => loadHistory(e.target.value));
+  loadHistory(200);
+</script>
+</body>
+</html>

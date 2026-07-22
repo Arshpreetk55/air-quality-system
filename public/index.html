@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Air Quality Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;min-height:100vh;padding:30px; }
+  h1{text-align:center;margin-bottom:20px;}
+  .navbar{display:flex;justify-content:center;gap:15px;margin-bottom:25px;flex-wrap:wrap;}
+  .navbar a{color:#f1f5f9;text-decoration:none;background:#334155;padding:8px 16px;border-radius:8px;}
+  .status-banner{text-align:center;padding:12px;border-radius:10px;font-weight:bold;font-size:1.2rem;margin-bottom:25px;}
+  .good{background:#16a34a;} .high{background:#dc2626;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;max-width:900px;margin:0 auto 40px;}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;text-align:center;}
+  .card .label{font-size:0.9rem;color:#94a3b8;text-transform:uppercase;margin-bottom:8px;}
+  .card .value{font-size:2.2rem;font-weight:700;}
+  .chart-container{max-width:900px;margin:0 auto;background:#1e293b;border-radius:14px;padding:20px;border:1px solid #334155;}
+</style>
+</head>
+<body>
+  <h1>🌫️ Live Air Quality Dashboard</h1>
+  <nav class="navbar">
+    <a href="/">🏠 Live</a>
+    <a href="/history.html">📈 History</a>
+    <a href="/settings.html">⚙️ Settings</a>
+    <a href="/alerts.html">🚨 Alerts</a>
+  </nav>
+
+  <div id="statusBanner" class="status-banner good">Waiting for data...</div>
+
+  <div class="cards">
+    <div class="card"><div class="label">Air Quality</div><div class="value"><span id="ppm">--</span></div></div>
+    <div class="card"><div class="label">Temperature</div><div class="value"><span id="temp">--</span> °C</div></div>
+    <div class="card"><div class="label">Humidity</div><div class="value"><span id="hum">--</span> %</div></div>
+  </div>
+
+  <div class="chart-container"><canvas id="sensorChart" height="90"></canvas></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+    projectId: "air-quality-monitoring-s-1551f",
+    storageBucket: "PASTE_YOUR_BUCKET",
+    messagingSenderId: "PASTE_YOUR_SENDER_ID",
+    appId: "PASTE_YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const maxPoints = 20;
+  const ctx = document.getElementById('sensorChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: 'PPM', data: [], borderColor: '#38bdf8', tension: 0.3 },
+      { label: 'Temp (°C)', data: [], borderColor: '#f97316', tension: 0.3 },
+      { label: 'Humidity (%)', data: [], borderColor: '#22c55e', tension: 0.3 }
+    ]},
+    options: { responsive:true, animation:false,
+      scales:{ x:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}}, y:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}} },
+      plugins:{ legend:{ labels:{ color:'#f1f5f9' } } } }
+  });
+
+  const q = query(collection(db, 'readings'), orderBy('timestamp', 'desc'), limit(1));
+  onSnapshot(q, (snapshot) => {
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      document.getElementById('ppm').textContent = data.ppm;
+      document.getElementById('temp').textContent = data.temp.toFixed(1);
+      document.getElementById('hum').textContent = data.hum.toFixed(1);
+
+      const banner = document.getElementById('statusBanner');
+      const isHigh = data.ppm > 250; // or fetch threshold from settings doc
+      banner.textContent = isHigh ? '⚠️ Air Quality HIGH' : '✅ Air Quality Good';
+      banner.className = isHigh ? 'status-banner high' : 'status-banner good';
+
+      const now = new Date().toLocaleTimeString();
+      chart.data.labels.push(now);
+      chart.data.datasets[0].data.push(data.ppm);
+      chart.data.datasets[1].data.push(data.temp);
+      chart.data.datasets[2].data.push(data.hum);
+      if (chart.data.labels.length > maxPoints) {
+        chart.data.labels.shift();
+        chart.data.datasets.forEach(ds => ds.data.shift());
+      }
+      chart.update();
+    });
+  });
+</script>
+</body>
+</html>

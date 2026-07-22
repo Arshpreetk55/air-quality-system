@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><title>Settings - Air Quality</title>
+<style>
+  body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;padding:30px;}
+  h1{text-align:center;margin-bottom:20px;}
+  .navbar{display:flex;justify-content:center;gap:15px;margin-bottom:25px;flex-wrap:wrap;}
+  .navbar a{color:#f1f5f9;text-decoration:none;background:#334155;padding:8px 16px;border-radius:8px;}
+  .card{max-width:500px;margin:0 auto 20px;background:#1e293b;border-radius:14px;padding:25px;border:1px solid #334155;}
+  label{display:block;margin-bottom:8px;color:#94a3b8;}
+  input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#f1f5f9;margin-bottom:15px;}
+  button{background:#38bdf8;color:#0f172a;border:none;padding:10px 20px;border-radius:8px;font-weight:bold;cursor:pointer;width:100%;}
+  .export-btn{background:#22c55e;}
+  #saveMsg{text-align:center;color:#22c55e;margin-top:10px;display:none;}
+</style>
+</head>
+<body>
+  <h1>⚙️ Settings</h1>
+  <nav class="navbar">
+    <a href="/">🏠 Live</a><a href="/history.html">📈 History</a>
+    <a href="/settings.html">⚙️ Settings</a><a href="/alerts.html">🚨 Alerts</a>
+  </nav>
+  <div class="card">
+    <label for="threshold">Air Quality HIGH Threshold (PPM)</label>
+    <input type="number" id="threshold" placeholder="250">
+    <button onclick="saveThreshold()">Save Threshold</button>
+    <p id="saveMsg">✅ Saved!</p>
+  </div>
+  <div class="card">
+    <label>Export all recorded readings as CSV</label>
+    <button class="export-btn" onclick="window.location.href='/api/export'">⬇️ Download CSV</button>
+  </div>
+<script>
+  fetch('/api/settings').then(r=>r.json()).then(d => document.getElementById('threshold').value = d.threshold);
+  function saveThreshold() {
+    const value = document.getElementById('threshold').value;
+    fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({threshold:Number(value)}) })
+      .then(r=>r.json()).then(()=>{
+        const msg = document.getElementById('saveMsg');
+        msg.style.display='block';
+        setTimeout(()=>msg.style.display='none',2000);
+      });
+  }
+</script>
+</body>
+</html>
