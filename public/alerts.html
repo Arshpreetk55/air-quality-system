@@ -25,17 +25,20 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "PASTE_YOUR_API_KEY",
-    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
-    projectId: "air-quality-monitoring-s-1551f",
-    storageBucket: "PASTE_YOUR_BUCKET",
-    messagingSenderId: "PASTE_YOUR_SENDER_ID",
-    appId: "PASTE_YOUR_APP_ID"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
+  authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+  databaseURL: "https://air-quality-monitoring-s-1551f-default-rtdb.firebaseio.com",
+  projectId: "air-quality-monitoring-s-1551f",
+  storageBucket: "air-quality-monitoring-s-1551f.firebasestorage.app",
+  messagingSenderId: "630203906956",
+  appId: "1:630203906956:web:65e968db4045a477b4b4a9",
+  measurementId: "G-4ZWFMH9YW1"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
   const list = document.getElementById('alertList');
 
   function renderAlerts(alerts) {
