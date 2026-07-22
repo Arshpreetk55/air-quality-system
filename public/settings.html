@@ -29,19 +29,58 @@
   </div>
   <div class="card">
     <label>Export all recorded readings as CSV</label>
-    <button class="export-btn" onclick="window.location.href='/api/export'">⬇️ Download CSV</button>
+    <button class="export-btn" onclick="exportCSV()">⬇️ Download CSV</button>
   </div>
-<script>
-  fetch('/api/settings').then(r=>r.json()).then(d => document.getElementById('threshold').value = d.threshold);
-  function saveThreshold() {
-    const value = document.getElementById('threshold').value;
-    fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({threshold:Number(value)}) })
-      .then(r=>r.json()).then(()=>{
-        const msg = document.getElementById('saveMsg');
-        msg.style.display='block';
-        setTimeout(()=>msg.style.display='none',2000);
-      });
-  }
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+    projectId: "air-quality-monitoring-s-1551f",
+    storageBucket: "PASTE_YOUR_BUCKET",
+    messagingSenderId: "PASTE_YOUR_SENDER_ID",
+    appId: "PASTE_YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const settingsRef = doc(db, 'settings', 'config');
+
+  // load current threshold
+  getDoc(settingsRef).then(snap => {
+    const value = snap.exists() ? snap.data().threshold : 250;
+    document.getElementById('threshold').value = value;
+  });
+
+  window.saveThreshold = async function () {
+    const value = Number(document.getElementById('threshold').value);
+    if (!value || isNaN(value)) return alert('Invalid threshold');
+    await setDoc(settingsRef, { threshold: value }, { merge: true });
+    const msg = document.getElementById('saveMsg');
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  };
+
+  window.exportCSV = async function () {
+    const q = query(collection(db, 'readings'), orderBy('timestamp', 'desc'), limit(5000));
+    const snap = await getDocs(q);
+    let csv = 'id,ppm,temp,hum,timestamp\n';
+    snap.docs.forEach(d => {
+      const data = d.data();
+      const ts = data.timestamp ? data.timestamp.toDate().toLocaleString() : '';
+      csv += `${d.id},${data.ppm},${data.temp},${data.hum},${ts}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sensor_readings.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 </script>
 </body>
 </html>

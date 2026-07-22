@@ -2,7 +2,6 @@
 <html>
 <head>
 <meta charset="UTF-8"><title>Alerts - Air Quality</title>
-<script src="/socket.io/socket.io.js"></script>
 <style>
   body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;padding:30px;}
   h1{text-align:center;margin-bottom:20px;}
@@ -21,9 +20,24 @@
     <a href="/settings.html">⚙️ Settings</a><a href="/alerts.html">🚨 Alerts</a>
   </nav>
   <div class="list" id="alertList"></div>
-<script>
-  const socket = io();
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+    projectId: "air-quality-monitoring-s-1551f",
+    storageBucket: "PASTE_YOUR_BUCKET",
+    messagingSenderId: "PASTE_YOUR_SENDER_ID",
+    appId: "PASTE_YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
   const list = document.getElementById('alertList');
+
   function renderAlerts(alerts) {
     list.innerHTML = '';
     if (alerts.length === 0) { list.innerHTML = '<p class="empty">No alerts recorded yet 🎉</p>'; return; }
@@ -34,8 +48,18 @@
       list.appendChild(div);
     });
   }
-  fetch('/api/alerts').then(r=>r.json()).then(renderAlerts);
-  socket.on('newAlert', () => fetch('/api/alerts').then(r=>r.json()).then(renderAlerts));
+
+  const q = query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(100));
+  onSnapshot(q, (snap) => {
+    const alerts = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        ppm: data.ppm,
+        timestamp: data.timestamp ? data.timestamp.toDate().toLocaleString() : ''
+      };
+    });
+    renderAlerts(alerts);
+  });
 </script>
 </body>
 </html>

@@ -24,26 +24,54 @@
     <option value="1000">Last 1000 readings</option>
   </select>
   <div class="chart-container"><canvas id="historyChart" height="100"></canvas></div>
-<script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+    projectId: "air-quality-monitoring-s-1551f",
+    storageBucket: "PASTE_YOUR_BUCKET",
+    messagingSenderId: "PASTE_YOUR_SENDER_ID",
+    appId: "PASTE_YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
   const ctx = document.getElementById('historyChart').getContext('2d');
   let chart;
-  function loadHistory(limit) {
-    fetch(`/api/history?limit=${limit}`).then(r=>r.json()).then(rows=>{
-      const labels = rows.map(r => r.timestamp.split(' ')[1] || r.timestamp);
-      if (chart) chart.destroy();
-      chart = new Chart(ctx, {
-        type:'line',
-        data:{ labels, datasets:[
-          {label:'PPM',data:rows.map(r=>r.ppm),borderColor:'#38bdf8',tension:0.3},
-          {label:'Temp (°C)',data:rows.map(r=>r.temp),borderColor:'#f97316',tension:0.3},
-          {label:'Humidity (%)',data:rows.map(r=>r.hum),borderColor:'#22c55e',tension:0.3}
-        ]},
-        options:{ responsive:true,
-          scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#334155'}}},
-          plugins:{legend:{labels:{color:'#f1f5f9'}}} }
-      });
+
+  async function loadHistory(n) {
+    const q = query(collection(db, 'readings'), orderBy('timestamp', 'desc'), limit(Number(n)));
+    const snap = await getDocs(q);
+    const rows = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        ppm: data.ppm,
+        temp: data.temp,
+        hum: data.hum,
+        timestamp: data.timestamp ? data.timestamp.toDate().toLocaleString() : ''
+      };
+    }).reverse();
+
+    const labels = rows.map(r => r.timestamp.split(' ')[1] || r.timestamp);
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: 'PPM', data: rows.map(r => r.ppm), borderColor: '#38bdf8', tension: 0.3 },
+        { label: 'Temp (°C)', data: rows.map(r => r.temp), borderColor: '#f97316', tension: 0.3 },
+        { label: 'Humidity (%)', data: rows.map(r => r.hum), borderColor: '#22c55e', tension: 0.3 }
+      ]},
+      options: { responsive: true,
+        scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } } },
+        plugins: { legend: { labels: { color: '#f1f5f9' } } } }
     });
   }
+
   document.getElementById('rangeSelect').addEventListener('change', e => loadHistory(e.target.value));
   loadHistory(200);
 </script>
