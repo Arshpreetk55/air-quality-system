@@ -257,7 +257,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
@@ -285,15 +285,18 @@
     pWrap.appendChild(s);
   }
 
-  const bands = [
-    { max:50,  color:'--aqi-good',           label:'Good',            word:'clean' },
-    { max:100, color:'--aqi-moderate',       label:'Moderate',        word:'moderate' },
-    { max:150, color:'--aqi-sensitive',      label:'Sensitive groups',word:'a little elevated' },
-    { max:200, color:'--aqi-unhealthy',      label:'Unhealthy',       word:'unhealthy' },
-    { max:300, color:'--aqi-very-unhealthy', label:'Very unhealthy',  word:'very unhealthy' },
-    { max:Infinity, color:'--aqi-hazardous', label:'Hazardous',       word:'hazardous' },
-  ];
-  function bandFor(ppm){ return bands.find(b => ppm <= b.max) || bands[bands.length-1]; }
+  // Two-state system that matches the threshold saved on the Settings page —
+  // the same value the Arduino bridge uses to decide when to log an alert.
+  let threshold = 250; // fallback until Firestore responds
+  getDoc(doc(db, 'settings', 'config')).then(snap => {
+    if (snap.exists() && snap.data().threshold) threshold = Number(snap.data().threshold);
+  });
+
+  function bandFor(ppm){
+    return ppm <= threshold
+      ? { color:'--aqi-good',      label:'Good',  word:'clean' }
+      : { color:'--aqi-unhealthy', label:'Alert', word:'above your threshold' };
+  }
 
   function animateNumber(el, to, decimals){
     decimals = decimals || 0;
