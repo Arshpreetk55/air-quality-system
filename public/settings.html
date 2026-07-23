@@ -1,58 +1,191 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"><title>Settings - Air Quality</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AirSense — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;padding:30px;}
-  h1{text-align:center;margin-bottom:20px;}
-  .navbar{display:flex;justify-content:center;gap:15px;margin-bottom:25px;flex-wrap:wrap;}
-  .navbar a{color:#f1f5f9;text-decoration:none;background:#334155;padding:8px 16px;border-radius:8px;}
-  .card{max-width:500px;margin:0 auto 20px;background:#1e293b;border-radius:14px;padding:25px;border:1px solid #334155;}
-  label{display:block;margin-bottom:8px;color:#94a3b8;}
-  input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#f1f5f9;margin-bottom:15px;}
-  button{background:#38bdf8;color:#0f172a;border:none;padding:10px 20px;border-radius:8px;font-weight:bold;cursor:pointer;width:100%;}
-  .export-btn{background:#22c55e;}
-  #saveMsg{text-align:center;color:#22c55e;margin-top:10px;display:none;}
+  :root{
+    --bg-0:#080b14; --bg-1:#0d1220;
+    --panel:rgba(255,255,255,0.04); --panel-border:rgba(255,255,255,0.08);
+    --ink:#e9edf5; --ink-dim:#8891a5; --ink-faint:#5a6376;
+    --aqi-good:#33d17a; --aqi-moderate:#e6d84f; --aqi-sensitive:#f4a942;
+    --aqi-unhealthy:#f4573f; --aqi-very-unhealthy:#b355e0; --aqi-hazardous:#8a3550;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter',sans-serif;color:var(--ink);min-height:100vh;padding:28px 20px 60px;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(51,209,122,0.10), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(179,85,224,0.10), transparent 40%),
+      linear-gradient(180deg,var(--bg-0),var(--bg-1) 60%,var(--bg-0));
+    position:relative;overflow-x:hidden;
+  }
+  .particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .particles span{position:absolute;bottom:-10px;width:var(--s,3px);height:var(--s,3px);
+    background:var(--c,rgba(233,237,245,0.35));border-radius:50%;
+    animation:rise var(--d,18s) linear infinite;animation-delay:var(--delay,0s);left:var(--l,50%);}
+  @keyframes rise{0%{transform:translateY(0) translateX(0);opacity:0;}10%{opacity:1;}90%{opacity:1;}
+    100%{transform:translateY(-110vh) translateX(20px);opacity:0;}}
+  @media (prefers-reduced-motion: reduce){.particles{display:none;}}
+
+  header{max-width:700px;margin:0 auto 30px;display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;position:relative;z-index:1;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand .mark{width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(135deg,var(--aqi-good),var(--aqi-sensitive));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;color:#0a0d14;font-size:1.05rem;
+    box-shadow:0 6px 24px -8px rgba(51,209,122,0.5);}
+  .brand h1{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:600;letter-spacing:-0.01em;}
+  .brand .sub{font-size:0.72rem;color:var(--ink-faint);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;}
+  nav.navbar{display:flex;gap:6px;flex-wrap:wrap;}
+  .navbar a{color:var(--ink-dim);text-decoration:none;font-size:0.86rem;font-weight:500;
+    padding:8px 14px;border-radius:9px;transition:all .18s ease;border:1px solid transparent;}
+  .navbar a:hover{color:var(--ink);background:var(--panel);border-color:var(--panel-border);}
+  .navbar a.active{color:var(--ink);background:var(--panel);border-color:var(--panel-border);}
+
+  main{max-width:700px;margin:0 auto;position:relative;z-index:1;}
+
+  .page-head{margin-bottom:24px;}
+  .page-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:600;}
+  .page-head p{color:var(--ink-faint);font-size:0.86rem;margin-top:4px;}
+
+  .card{
+    background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;
+    padding:26px;margin-bottom:18px;backdrop-filter:blur(18px);
+  }
+  .card .card-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .card .icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:1rem;background:rgba(255,255,255,0.05);border:1px solid var(--panel-border);}
+  .card h3{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:600;}
+  .card p.desc{color:var(--ink-faint);font-size:0.82rem;margin-bottom:16px;line-height:1.5;}
+
+  label{display:block;margin-bottom:8px;color:var(--ink-dim);font-size:0.84rem;font-weight:500;}
+  .input-row{display:flex;gap:10px;align-items:center;margin-bottom:6px;}
+  input[type=number]{
+    flex:1;padding:12px 14px;border-radius:10px;border:1px solid var(--panel-border);
+    background:rgba(255,255,255,0.03);color:var(--ink);font-family:'JetBrains Mono',monospace;
+    font-size:1.05rem;
+  }
+  input[type=number]:focus-visible{outline:2px solid var(--aqi-good);outline-offset:2px;}
+  .unit-badge{font-size:0.78rem;color:var(--ink-faint);padding:8px 12px;border:1px solid var(--panel-border);border-radius:8px;}
+
+  button{
+    border:none;padding:12px 22px;border-radius:10px;font-weight:600;font-size:0.9rem;
+    cursor:pointer;font-family:'Inter',sans-serif;transition:transform .15s ease, box-shadow .15s ease;
+  }
+  button:hover{transform:translateY(-1px);}
+  button:active{transform:translateY(0);}
+  .btn-primary{background:linear-gradient(135deg,var(--aqi-good),#22b06a);color:#06120a;
+    box-shadow:0 8px 20px -8px rgba(51,209,122,0.5);}
+  .btn-secondary{background:linear-gradient(135deg,#7aa2f7,#5b7fe0);color:#050914;
+    box-shadow:0 8px 20px -8px rgba(122,162,247,0.4);width:100%;margin-top:2px;}
+
+  #saveMsg{
+    color:var(--aqi-good);font-size:0.82rem;margin-top:12px;display:none;
+    align-items:center;gap:6px;
+  }
+
+  .band-preview{display:flex;gap:4px;margin-top:16px;border-radius:8px;overflow:hidden;}
+  .band-preview span{flex:1;height:8px;}
+
+  footer{max-width:700px;margin:26px auto 0;text-align:center;color:var(--ink-faint);font-size:0.76rem;position:relative;z-index:1;}
 </style>
 </head>
 <body>
-  <h1>⚙️ Settings</h1>
+
+<div class="particles" id="particles"></div>
+
+<header>
+  <div class="brand">
+    <div class="mark">A</div>
+    <div><h1>AirSense</h1><div class="sub">Ambient air monitor</div></div>
+  </div>
   <nav class="navbar">
-    <a href="/">🏠 Live</a><a href="/history.html">📈 History</a>
-    <a href="/settings.html">⚙️ Settings</a><a href="/alerts.html">🚨 Alerts</a>
+    <a href="/">Live</a>
+    <a href="/about.html">About</a>
+    <a href="/history.html">History</a>
+    <a href="/settings.html" class="active">Settings</a>
+    <a href="/alerts.html">Alerts</a>
   </nav>
-  <div class="card">
-    <label for="threshold">Air Quality HIGH Threshold (PPM)</label>
-    <input type="number" id="threshold" placeholder="250">
-    <button onclick="saveThreshold()">Save Threshold</button>
-    <p id="saveMsg">✅ Saved!</p>
+</header>
+
+<main>
+  <div class="page-head">
+    <h2>Settings</h2>
+    <p>Configure alert sensitivity and export your recorded data.</p>
   </div>
+
   <div class="card">
-    <label>Export all recorded readings as CSV</label>
-    <button class="export-btn" onclick="exportCSV()">⬇️ Download CSV</button>
+    <div class="card-head">
+      <div class="icon">⚠️</div>
+      <h3>Alert threshold</h3>
+    </div>
+    <p class="desc">An alert fires when a PPM reading exceeds this value.</p>
+    <label for="threshold">Threshold (PPM)</label>
+    <div class="input-row">
+      <input type="number" id="threshold" placeholder="250">
+      <span class="unit-badge">ppm</span>
+    </div>
+    <button class="btn-primary" onclick="saveThreshold()">Save threshold</button>
+    <p id="saveMsg">✓ Saved</p>
+    <div class="band-preview">
+      <span style="background:var(--aqi-good)"></span>
+      <span style="background:var(--aqi-moderate)"></span>
+      <span style="background:var(--aqi-sensitive)"></span>
+      <span style="background:var(--aqi-unhealthy)"></span>
+      <span style="background:var(--aqi-very-unhealthy)"></span>
+      <span style="background:var(--aqi-hazardous)"></span>
+    </div>
   </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="icon">⬇️</div>
+      <h3>Export data</h3>
+    </div>
+    <p class="desc">Download every recorded reading (up to 5,000 rows) as a CSV file.</p>
+    <button class="btn-secondary" onclick="exportCSV()">Download CSV</button>
+  </div>
+</main>
+
+<footer>AirSense — built on Firebase &amp; Chart.js</footer>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
-  authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
-  databaseURL: "https://air-quality-monitoring-s-1551f-default-rtdb.firebaseio.com",
-  projectId: "air-quality-monitoring-s-1551f",
-  storageBucket: "air-quality-monitoring-s-1551f.firebasestorage.app",
-  messagingSenderId: "630203906956",
-  appId: "1:630203906956:web:65e968db4045a477b4b4a9",
-  measurementId: "G-4ZWFMH9YW1"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
+    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+    databaseURL: "https://air-quality-monitoring-s-1551f-default-rtdb.firebaseio.com",
+    projectId: "air-quality-monitoring-s-1551f",
+    storageBucket: "air-quality-monitoring-s-1551f.firebasestorage.app",
+    messagingSenderId: "630203906956",
+    appId: "1:630203906956:web:65e968db4045a477b4b4a9",
+    measurementId: "G-4ZWFMH9YW1"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const settingsRef = doc(db, 'settings', 'config');
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app); 
-const settingsRef = doc(db, 'settings', 'config');
+  const pWrap = document.getElementById('particles');
+  const colors = ['rgba(233,237,245,0.3)','rgba(51,209,122,0.35)','rgba(179,85,224,0.3)'];
+  for (let i = 0; i < 26; i++) {
+    const s = document.createElement('span');
+    s.style.setProperty('--l', Math.random()*100 + '%');
+    s.style.setProperty('--d', (14 + Math.random()*14) + 's');
+    s.style.setProperty('--delay', (Math.random()*18) + 's');
+    s.style.setProperty('--s', (2 + Math.random()*3) + 'px');
+    s.style.setProperty('--c', colors[i % colors.length]);
+    pWrap.appendChild(s);
+  }
 
-  // load current threshold
   getDoc(settingsRef).then(snap => {
     const value = snap.exists() ? snap.data().threshold : 250;
     document.getElementById('threshold').value = value;
@@ -60,10 +193,10 @@ const settingsRef = doc(db, 'settings', 'config');
 
   window.saveThreshold = async function () {
     const value = Number(document.getElementById('threshold').value);
-    if (!value || isNaN(value)) return alert('Invalid threshold');
+    if (!value || isNaN(value)) return alert('Enter a valid threshold.');
     await setDoc(settingsRef, { threshold: value }, { merge: true });
     const msg = document.getElementById('saveMsg');
-    msg.style.display = 'block';
+    msg.style.display = 'flex';
     setTimeout(() => msg.style.display = 'none', 2000);
   };
 
@@ -74,7 +207,7 @@ const settingsRef = doc(db, 'settings', 'config');
     snap.docs.forEach(d => {
       const data = d.data();
       const ts = data.timestamp ? data.timestamp.toDate().toLocaleString() : '';
-      csv += `${d.id},${data.ppm},${data.temp},${data.hum},${ts}\n`;
+      csv += d.id + ',' + data.ppm + ',' + data.temp + ',' + data.hum + ',' + ts + '\n';
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

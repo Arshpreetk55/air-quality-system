@@ -1,77 +1,214 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"><title>History - Air Quality</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AirSense — History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1e293b,#0f172a);color:#f1f5f9;padding:30px;}
-  h1{text-align:center;margin-bottom:20px;}
-  .navbar{display:flex;justify-content:center;gap:15px;margin-bottom:25px;flex-wrap:wrap;}
-  .navbar a{color:#f1f5f9;text-decoration:none;background:#334155;padding:8px 16px;border-radius:8px;}
-  .chart-container{max-width:900px;margin:0 auto;background:#1e293b;border-radius:14px;padding:20px;border:1px solid #334155;}
-  select{background:#334155;color:#f1f5f9;border:none;padding:8px 14px;border-radius:8px;margin:0 auto 20px;display:block;}
+  :root{
+    --bg-0:#080b14; --bg-1:#0d1220;
+    --panel:rgba(255,255,255,0.04); --panel-border:rgba(255,255,255,0.08);
+    --ink:#e9edf5; --ink-dim:#8891a5; --ink-faint:#5a6376;
+    --aqi-good:#33d17a; --aqi-moderate:#e6d84f; --aqi-sensitive:#f4a942;
+    --aqi-unhealthy:#f4573f; --aqi-very-unhealthy:#b355e0; --aqi-hazardous:#8a3550;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter',sans-serif;color:var(--ink);min-height:100vh;padding:28px 20px 60px;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(51,209,122,0.10), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(179,85,224,0.10), transparent 40%),
+      linear-gradient(180deg,var(--bg-0),var(--bg-1) 60%,var(--bg-0));
+    position:relative;overflow-x:hidden;
+  }
+  .particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .particles span{position:absolute;bottom:-10px;width:var(--s,3px);height:var(--s,3px);
+    background:var(--c,rgba(233,237,245,0.35));border-radius:50%;
+    animation:rise var(--d,18s) linear infinite;animation-delay:var(--delay,0s);left:var(--l,50%);}
+  @keyframes rise{0%{transform:translateY(0) translateX(0);opacity:0;}10%{opacity:1;}90%{opacity:1;}
+    100%{transform:translateY(-110vh) translateX(20px);opacity:0;}}
+  @media (prefers-reduced-motion: reduce){.particles{display:none;}}
+
+  header{max-width:1080px;margin:0 auto 30px;display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;position:relative;z-index:1;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand .mark{width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(135deg,var(--aqi-good),var(--aqi-sensitive));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;color:#0a0d14;font-size:1.05rem;
+    box-shadow:0 6px 24px -8px rgba(51,209,122,0.5);}
+  .brand h1{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:600;letter-spacing:-0.01em;}
+  .brand .sub{font-size:0.72rem;color:var(--ink-faint);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;}
+  nav.navbar{display:flex;gap:6px;flex-wrap:wrap;}
+  .navbar a{color:var(--ink-dim);text-decoration:none;font-size:0.86rem;font-weight:500;
+    padding:8px 14px;border-radius:9px;transition:all .18s ease;border:1px solid transparent;}
+  .navbar a:hover{color:var(--ink);background:var(--panel);border-color:var(--panel-border);}
+  .navbar a.active{color:var(--ink);background:var(--panel);border-color:var(--panel-border);}
+
+  main{max-width:1080px;margin:0 auto;position:relative;z-index:1;}
+
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin-bottom:20px;}
+  .page-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:600;}
+  .page-head p{color:var(--ink-faint);font-size:0.86rem;margin-top:4px;}
+
+  select{
+    background:var(--panel);color:var(--ink);border:1px solid var(--panel-border);
+    padding:10px 16px;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.86rem;
+    backdrop-filter:blur(10px);cursor:pointer;
+  }
+  select:focus-visible{outline:2px solid var(--aqi-good);outline-offset:2px;}
+
+  .metric-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px;}
+  .metric{background:var(--panel);border:1px solid var(--panel-border);border-radius:16px;padding:18px 20px;
+    backdrop-filter:blur(18px);}
+  .metric .label{font-size:0.72rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
+  .metric .value{font-family:'JetBrains Mono',monospace;font-size:1.7rem;font-weight:600;}
+  .metric .value span.suffix{font-size:0.95rem;color:var(--ink-dim);font-weight:400;margin-left:2px;}
+  .metric.ppm .value{color:var(--aqi-good);}
+  .metric.temp .value{color:var(--aqi-sensitive);}
+  .metric.hum .value{color:#7aa2f7;}
+
+  .chart-panel{background:var(--panel);border:1px solid var(--panel-border);border-radius:22px;
+    padding:26px;backdrop-filter:blur(18px);margin-bottom:22px;}
+  .chart-panel .panel-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .chart-panel h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:600;}
+  .chart-panel .panel-head span{font-size:0.78rem;color:var(--ink-faint);}
+  .chart-container{position:relative;height:360px;}
+  .empty-state{text-align:center;color:var(--ink-faint);padding:60px 20px;font-size:0.9rem;}
+
+  footer{max-width:1080px;margin:26px auto 0;text-align:center;color:var(--ink-faint);font-size:0.76rem;position:relative;z-index:1;}
+
+  @media (max-width:760px){ .chart-container{height:280px;} }
 </style>
 </head>
 <body>
-  <h1>📈 Historical Trends</h1>
+
+<div class="particles" id="particles"></div>
+
+<header>
+  <div class="brand">
+    <div class="mark">A</div>
+    <div><h1>AirSense</h1><div class="sub">Ambient air monitor</div></div>
+  </div>
   <nav class="navbar">
-    <a href="/">🏠 Live</a><a href="/history.html">📈 History</a>
-    <a href="/settings.html">⚙️ Settings</a><a href="/alerts.html">🚨 Alerts</a>
+    <a href="/">Live</a>
+    <a href="/about.html">About</a>
+    <a href="/history.html" class="active">History</a>
+    <a href="/settings.html">Settings</a>
+    <a href="/alerts.html">Alerts</a>
   </nav>
-  <select id="rangeSelect">
-    <option value="50">Last 50 readings</option>
-    <option value="200" selected>Last 200 readings</option>
-    <option value="1000">Last 1000 readings</option>
-  </select>
-  <div class="chart-container"><canvas id="historyChart" height="100"></canvas></div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div>
+      <h2>Historical trends</h2>
+      <p>Review past readings across PPM, temperature, and humidity.</p>
+    </div>
+    <select id="rangeSelect">
+      <option value="50">Last 50 readings</option>
+      <option value="200" selected>Last 200 readings</option>
+      <option value="1000">Last 1000 readings</option>
+    </select>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric ppm"><div class="label">Avg PPM</div><div class="value" id="avgPpm">—</div></div>
+    <div class="metric ppm"><div class="label">Peak PPM</div><div class="value" id="maxPpm">—</div></div>
+    <div class="metric temp"><div class="label">Avg Temp</div><div class="value" id="avgTemp">—<span class="suffix">°C</span></div></div>
+    <div class="metric hum"><div class="label">Avg Humidity</div><div class="value" id="avgHum">—<span class="suffix">%</span></div></div>
+  </div>
+
+  <section class="chart-panel">
+    <div class="panel-head">
+      <h2>Sensor history</h2>
+      <span id="rangeLabel">Last 200 readings</span>
+    </div>
+    <div class="chart-container"><canvas id="historyChart"></canvas></div>
+  </section>
+</main>
+
+<footer>AirSense — built on Firebase &amp; Chart.js</footer>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
-  authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
-  databaseURL: "https://air-quality-monitoring-s-1551f-default-rtdb.firebaseio.com",
-  projectId: "air-quality-monitoring-s-1551f",
-  storageBucket: "air-quality-monitoring-s-1551f.firebasestorage.app",
-  messagingSenderId: "630203906956",
-  appId: "1:630203906956:web:65e968db4045a477b4b4a9",
-  measurementId: "G-4ZWFMH9YW1"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyA8ieDbZY66Kqr0cPkscB0_JxVCsH4TwDc",
+    authDomain: "air-quality-monitoring-s-1551f.firebaseapp.com",
+    databaseURL: "https://air-quality-monitoring-s-1551f-default-rtdb.firebaseio.com",
+    projectId: "air-quality-monitoring-s-1551f",
+    storageBucket: "air-quality-monitoring-s-1551f.firebasestorage.app",
+    messagingSenderId: "630203906956",
+    appId: "1:630203906956:web:65e968db4045a477b4b4a9",
+    measurementId: "G-4ZWFMH9YW1"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  const pWrap = document.getElementById('particles');
+  const colors = ['rgba(233,237,245,0.3)','rgba(51,209,122,0.35)','rgba(179,85,224,0.3)'];
+  for (let i = 0; i < 26; i++) {
+    const s = document.createElement('span');
+    s.style.setProperty('--l', Math.random()*100 + '%');
+    s.style.setProperty('--d', (14 + Math.random()*14) + 's');
+    s.style.setProperty('--delay', (Math.random()*18) + 's');
+    s.style.setProperty('--s', (2 + Math.random()*3) + 'px');
+    s.style.setProperty('--c', colors[i % colors.length]);
+    pWrap.appendChild(s);
+  }
 
   const ctx = document.getElementById('historyChart').getContext('2d');
   let chart;
 
   async function loadHistory(n) {
+    document.getElementById('rangeLabel').textContent = 'Last ' + n + ' readings';
     const q = query(collection(db, 'readings'), orderBy('timestamp', 'desc'), limit(Number(n)));
     const snap = await getDocs(q);
     const rows = snap.docs.map(d => {
       const data = d.data();
       return {
-        ppm: data.ppm,
-        temp: data.temp,
-        hum: data.hum,
+        ppm: Number(data.ppm), temp: Number(data.temp), hum: Number(data.hum),
         timestamp: data.timestamp ? data.timestamp.toDate().toLocaleString() : ''
       };
     }).reverse();
+
+    if (rows.length === 0) {
+      document.querySelector('.chart-container').innerHTML = '<div class="empty-state">No readings recorded yet.</div>';
+      return;
+    }
+
+    const ppmVals = rows.map(r => r.ppm), tempVals = rows.map(r => r.temp), humVals = rows.map(r => r.hum);
+    const avg = arr => (arr.reduce((a,b)=>a+b,0) / arr.length).toFixed(1);
+    document.getElementById('avgPpm').textContent = avg(ppmVals);
+    document.getElementById('maxPpm').textContent = Math.max(...ppmVals);
+    document.getElementById('avgTemp').innerHTML = avg(tempVals) + '<span class="suffix">°C</span>';
+    document.getElementById('avgHum').innerHTML = avg(humVals) + '<span class="suffix">%</span>';
 
     const labels = rows.map(r => r.timestamp.split(' ')[1] || r.timestamp);
     if (chart) chart.destroy();
     chart = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets: [
-        { label: 'PPM', data: rows.map(r => r.ppm), borderColor: '#38bdf8', tension: 0.3 },
-        { label: 'Temp (°C)', data: rows.map(r => r.temp), borderColor: '#f97316', tension: 0.3 },
-        { label: 'Humidity (%)', data: rows.map(r => r.hum), borderColor: '#22c55e', tension: 0.3 }
+        { label: 'PPM', data: ppmVals, borderColor: '#33d17a', backgroundColor:'rgba(51,209,122,0.08)', fill:true, tension: 0.3, pointRadius:0, borderWidth:2 },
+        { label: 'Temp (°C)', data: tempVals, borderColor: '#f4a942', tension: 0.3, pointRadius:0, borderWidth:2 },
+        { label: 'Humidity (%)', data: humVals, borderColor: '#7aa2f7', tension: 0.3, pointRadius:0, borderWidth:2 }
       ]},
-      options: { responsive: true,
-        scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } } },
-        plugins: { legend: { labels: { color: '#f1f5f9' } } } }
+      options: {
+        responsive: true, maintainAspectRatio:false,
+        interaction:{ mode:'index', intersect:false },
+        scales: {
+          x: { ticks: { color: '#5a6376', maxRotation:0, autoSkip:true }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#5a6376' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        },
+        plugins: { legend: { labels: { color: '#8891a5', usePointStyle:true, boxWidth:8 } } }
+      }
     });
   }
 
