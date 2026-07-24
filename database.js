@@ -11,6 +11,8 @@ const readingsRef = db.collection('readings');
 const alertsRef = db.collection('alerts');
 const settingsRef = db.collection('settings').doc('config');
 
+// Single threshold applied to both MQ135 and MQ2 — matches the simple
+// two-state (Good / Alert) system used on the dashboard's Live page.
 async function getThreshold() {
   const doc = await settingsRef.get();
   return doc.exists ? doc.data().threshold : 250;
@@ -20,9 +22,9 @@ async function setThreshold(value) {
   await settingsRef.set({ threshold: value }, { merge: true });
 }
 
-async function addReading(ppm, temp, hum) {
+async function addReading(mq135, mq2, temp, hum) {
   await readingsRef.add({
-    ppm, temp, hum,
+    mq135, mq2, temp, hum,
     timestamp: FieldValue.serverTimestamp()
   });
 }
@@ -33,7 +35,8 @@ async function getReadings(limit) {
     const data = doc.data();
     return {
       id: doc.id,
-      ppm: data.ppm,
+      mq135: data.mq135,
+      mq2: data.mq2,
       temp: data.temp,
       hum: data.hum,
       timestamp: data.timestamp ? data.timestamp.toDate().toLocaleString() : ''
@@ -41,9 +44,10 @@ async function getReadings(limit) {
   }).reverse();
 }
 
-async function addAlert(ppm) {
+// sensor: 'MQ135' or 'MQ2' — records which sensor triggered the alert
+async function addAlert(sensor, value) {
   await alertsRef.add({
-    ppm,
+    sensor, value,
     timestamp: FieldValue.serverTimestamp()
   });
 }
@@ -54,7 +58,8 @@ async function getAlerts(limit) {
     const data = doc.data();
     return {
       id: doc.id,
-      ppm: data.ppm,
+      sensor: data.sensor,
+      value: data.value,
       timestamp: data.timestamp ? data.timestamp.toDate().toLocaleString() : ''
     };
   });

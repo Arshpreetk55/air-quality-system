@@ -126,8 +126,8 @@
       <div class="icon">⚠️</div>
       <h3>Alert threshold</h3>
     </div>
-    <p class="desc">An alert fires when a PPM reading exceeds this value.</p>
-    <label for="threshold">Threshold (PPM)</label>
+    <p class="desc">An alert fires when either the MQ135 or MQ2 reading exceeds this value.</p>
+    <label for="threshold">Threshold</label>
     <div class="input-row">
       <input type="number" id="threshold" placeholder="250">
       <span class="unit-badge">ppm</span>
@@ -203,11 +203,11 @@
   window.exportCSV = async function () {
     const q = query(collection(db, 'readings'), orderBy('timestamp', 'desc'), limit(5000));
     const snap = await getDocs(q);
-    let csv = 'id,ppm,temp,hum,timestamp\n';
+    let csv = 'id,mq135,mq2,temp,hum,timestamp\n';
     snap.docs.forEach(d => {
       const data = d.data();
       const ts = data.timestamp ? data.timestamp.toDate().toLocaleString() : '';
-      csv += d.id + ',' + data.ppm + ',' + data.temp + ',' + data.hum + ',' + ts + '\n';
+      csv += d.id + ',' + data.mq135 + ',' + data.mq2 + ',' + data.temp + ',' + data.hum + ',' + ts + '\n';
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

@@ -18,24 +18,27 @@ const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
 let lastSaved = 0;
 let wasHigh = false;
 
+// Sketch sends: mq135,mq2,temp,humidity
 parser.on('data', async (line) => {
-  const [ppm, temp, hum] = line.trim().split(',').map(Number);
-  if (isNaN(ppm)) return;
+  const [mq135, mq2, temp, hum] = line.trim().split(',').map(Number);
+  if (isNaN(mq135) || isNaN(mq2)) return;
 
   const threshold = await db.getThreshold();
-  const isHigh = ppm > threshold;
+  const highMQ135 = mq135 > threshold;
+  const highMQ2 = mq2 > threshold;
+  const isHigh = highMQ135 || highMQ2;
 
-  io.emit('sensorData', { ppm, temp, hum, threshold });
+  io.emit('sensorData', { mq135, mq2, temp, hum, threshold });
 
   const now = Date.now();
   if (now - lastSaved > 5000) {
-    await db.addReading(ppm, temp, hum);
+    await db.addReading(mq135, mq2, temp, hum);
     lastSaved = now;
   }
 
   if (isHigh && !wasHigh) {
-    await db.addAlert(ppm);
-    io.emit('newAlert', { ppm });
+    if (highMQ135) { await db.addAlert('MQ135', mq135); io.emit('newAlert', { sensor: 'MQ135', value: mq135 }); }
+    if (highMQ2)   { await db.addAlert('MQ2', mq2);     io.emit('newAlert', { sensor: 'MQ2', value: mq2 }); }
   }
   wasHigh = isHigh;
 });
@@ -58,8 +61,8 @@ app.post('/api/settings', async (req, res) => {
 
 app.get('/api/export', async (req, res) => {
   const rows = await db.getReadings(5000);
-  let csv = 'id,ppm,temp,hum,timestamp\n';
-  rows.forEach(r => { csv += `${r.id},${r.ppm},${r.temp},${r.hum},${r.timestamp}\n`; });
+  let csv = 'id,mq135,mq2,temp,hum,timestamp\n';
+  rows.forEach(r => { csv += `${r.id},${r.mq135},${r.mq2},${r.temp},${r.hum},${r.timestamp}\n`; });
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=sensor_readings.csv');
   res.send(csv);

@@ -165,7 +165,7 @@
       const div = document.createElement('div');
       div.className = 'alert-item';
       div.innerHTML =
-        '<div class="left"><span class="badge">' + a.ppm + '</span><span class="label">PPM exceeded threshold</span></div>' +
+        '<div class="left"><span class="badge">' + a.value + '</span><span class="label">' + a.sensor + ' exceeded threshold</span></div>' +
         '<span class="time">' + a.timestamp + '</span>';
       list.appendChild(div);
     });
@@ -176,7 +176,8 @@
     const alerts = snap.docs.map(d => {
       const data = d.data();
       return {
-        ppm: data.ppm,
+        sensor: data.sensor,
+        value: data.value,
         timestamp: data.timestamp ? data.timestamp.toDate().toLocaleString() : ''
       };
     });

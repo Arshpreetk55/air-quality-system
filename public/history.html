@@ -70,6 +70,7 @@
   .metric .value{font-family:'JetBrains Mono',monospace;font-size:1.7rem;font-weight:600;}
   .metric .value span.suffix{font-size:0.95rem;color:var(--ink-dim);font-weight:400;margin-left:2px;}
   .metric.ppm .value{color:var(--aqi-good);}
+  .metric.gas .value{color:var(--aqi-very-unhealthy);}
   .metric.temp .value{color:var(--aqi-sensitive);}
   .metric.hum .value{color:#7aa2f7;}
 
@@ -118,8 +119,9 @@
   </div>
 
   <div class="metric-row">
-    <div class="metric ppm"><div class="label">Avg PPM</div><div class="value" id="avgPpm">—</div></div>
-    <div class="metric ppm"><div class="label">Peak PPM</div><div class="value" id="maxPpm">—</div></div>
+    <div class="metric ppm"><div class="label">Avg MQ135</div><div class="value" id="avgPpm">—</div></div>
+    <div class="metric ppm"><div class="label">Peak MQ135</div><div class="value" id="maxPpm">—</div></div>
+    <div class="metric gas"><div class="label">Peak MQ2</div><div class="value" id="maxMq2">—</div></div>
     <div class="metric temp"><div class="label">Avg Temp</div><div class="value" id="avgTemp">—<span class="suffix">°C</span></div></div>
     <div class="metric hum"><div class="label">Avg Humidity</div><div class="value" id="avgHum">—<span class="suffix">%</span></div></div>
   </div>
@@ -174,7 +176,7 @@
     const rows = snap.docs.map(d => {
       const data = d.data();
       return {
-        ppm: Number(data.ppm), temp: Number(data.temp), hum: Number(data.hum),
+        mq135: Number(data.mq135), mq2: Number(data.mq2), temp: Number(data.temp), hum: Number(data.hum),
         timestamp: data.timestamp ? data.timestamp.toDate().toLocaleString() : ''
       };
     }).reverse();
@@ -184,10 +186,11 @@
       return;
     }
 
-    const ppmVals = rows.map(r => r.ppm), tempVals = rows.map(r => r.temp), humVals = rows.map(r => r.hum);
+    const ppmVals = rows.map(r => r.mq135), mq2Vals = rows.map(r => r.mq2), tempVals = rows.map(r => r.temp), humVals = rows.map(r => r.hum);
     const avg = arr => (arr.reduce((a,b)=>a+b,0) / arr.length).toFixed(1);
     document.getElementById('avgPpm').textContent = avg(ppmVals);
     document.getElementById('maxPpm').textContent = Math.max(...ppmVals);
+    document.getElementById('maxMq2').textContent = Math.max(...mq2Vals);
     document.getElementById('avgTemp').innerHTML = avg(tempVals) + '<span class="suffix">°C</span>';
     document.getElementById('avgHum').innerHTML = avg(humVals) + '<span class="suffix">%</span>';
 
@@ -196,7 +199,8 @@
     chart = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets: [
-        { label: 'PPM', data: ppmVals, borderColor: '#33d17a', backgroundColor:'rgba(51,209,122,0.08)', fill:true, tension: 0.3, pointRadius:0, borderWidth:2 },
+        { label: 'MQ135', data: ppmVals, borderColor: '#33d17a', backgroundColor:'rgba(51,209,122,0.08)', fill:true, tension: 0.3, pointRadius:0, borderWidth:2 },
+        { label: 'MQ2', data: mq2Vals, borderColor: '#b355e0', tension: 0.3, pointRadius:0, borderWidth:2 },
         { label: 'Temp (°C)', data: tempVals, borderColor: '#f4a942', tension: 0.3, pointRadius:0, borderWidth:2 },
         { label: 'Humidity (%)', data: humVals, borderColor: '#7aa2f7', tension: 0.3, pointRadius:0, borderWidth:2 }
       ]},
