@@ -20,7 +20,9 @@ let wasHigh = false;
 
 // Sketch sends: mq135,mq2,temp,humidity
 parser.on('data', async (line) => {
+  console.log('RAW LINE:', line); 
   const [mq135, mq2, temp, hum] = line.trim().split(',').map(Number);
+  console.log('PARSED:', mq135, mq2, temp, hum);
   if (isNaN(mq135) || isNaN(mq2)) return;
 
   const threshold = await db.getThreshold();
